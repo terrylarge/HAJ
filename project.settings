@@ -55,7 +55,7 @@
 <lPassive=.F.>
 <username="192admin204">
 <password="Encrypted:oas!LgK?5H">
-<path="A5Webroot/HAJ">
+<path="a5v12\A5Webroot\HAJ">
 <port=21>
 <FTPProgram="InternalOptimized">
 <FTPCurl=.T.>
@@ -147,6 +147,8 @@ C:\Users\terry\Documents\AlphaAnywhere V12\HAJ1\HAJTripEvals.mdb
 <publishDifferentThanConfiguration=.F.>
 <version="2.0.0.0">
 <hashAlgorithm="SHA1">
+<providerClassParameters<[1]>
+>
 >
 <role<type="SameAsMembershipProvider">
 <connectionString="">
@@ -161,6 +163,8 @@ C:\Users\terry\Documents\AlphaAnywhere V12\HAJ1\HAJTripEvals.mdb
 <publishDataSource="SQLServer">
 <publishDifferentThanConfiguration=.F.>
 <version="">
+<providerClassParameters<[1]>
+>
 >
 <sessionState<type="LocalStateServer">
 <connectionString="">
@@ -179,6 +183,8 @@ C:\Users\terry\Documents\AlphaAnywhere V12\HAJ1\HAJTripEvals.mdb
 <storageType="In Session Provider">
 <version="">
 <storageScope="Only this application">
+<providerClassParameters<[1]>
+>
 >
 <profile<type="None">
 <connectionString="">
@@ -193,6 +199,8 @@ C:\Users\terry\Documents\AlphaAnywhere V12\HAJ1\HAJTripEvals.mdb
 <publishDataSource="SQLServer">
 <publishDifferentThanConfiguration=.F.>
 <version="">
+<providerClassParameters<[1]>
+>
 >
 >
 <remoteErrorDetailShow=.F.>
@@ -223,6 +231,8 @@ C:\Users\terry\Documents\AlphaAnywhere V12\HAJ1\HAJTripEvals.mdb
 >
 >
 %str%>
+<ADOConnectionStrings="">
+<websocket>
 <activeDirectory<name="">
 <serverName="">
 <userId="">
