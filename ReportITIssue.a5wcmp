@@ -35,7 +35,7 @@
                 "afterDialogValidate": "function afterDialogValidate as v (e as p)\n'e.dataSubmitted  - contains all values that were submitted by the component. \n'e.oldDataSubmitted - contains the original values in the controls. \n'NOTE: All values in e.dataSubmitted and e.oldDataSubmitted are character type. Use the convert_type() function to convert data to a different type.\n\n'To edit this action, place insertion point anywhere in the command, then click the 'Action Scripting' button'.\ndim flagUseTransactions as l \nflagUseTransactions = .f.\ndim rtc as p\ndim tmpl as p\ntmpl = e.tmpl\n\ndim serverSideEvents as p\n\n\n\ndim geography as p \nwith geography\nDIM geocodeFieldDefinition as C\nDIM locationFieldDefinition as C\n\nend with \n\ndim opx as p\nopx.serverSideEvents = serverSideEvents\nopx.geography = geography\nopx.afterSaveAction = \"Enter another record\"\nopx.listControlsToRefresh = \"\"\n\n\n\n\na5DialogHelper_SaveData(tmpl, e, rtc,flagUseTransactions, opx)\n\ndim jsShowErrors as c = \"\"\ndim jsEnterNewRecord as c = \"\"\ndim jsToFireAfterSaveEvent as c = \"\"\ndim jsShowUpdateCommands as c = \"\"\n\ndim jsConfirmationMessage as c = \"\"\n\n\n\nif rtc.fatalError = .t. then \n\t'must set this flag to prevent the Dialog from clearing the error messages.\n\te.showGlobalError = .t.\n\tdim errorText as c \n\terrorText = rtc.errorText\n\t'errorText = stritran(errorText,crlf(),\"<br>\")\n\t\n\tjsShowErrors = \"{dialog.object}.showGlobalErrors('<Default>','\" + js_escape(errorText) + \"'); \" + crlf()\n\t\n\trtc.javascript.refreshAllControls = \"\"\n\trtc.javascript.setPrimaryKeyinStateObject = \"\"\n\trtc.javascript.prepareDialog = \"\"\n\tjsToFireAfterSaveEvent = \"\"\n\tjsEnterNewRecord = \"\"\n\t\n\t\nend if \n\n\nif rtc.flagRecordWasSaved then \n\tjsConfirmationMessage = <<%js%\n{dialog.object}.fadeOutMessage('{dialog.componentname}.V.R1.','Record was saved',2000,true);\n%js%\n\nelse\n\tjsEnterNewRecord = \"\"\nend if \n\n\n\n\n\nif rtc.flagRecordWasSaved then \n\t'instead of calling the .newRecord() method, which would be second ajax callback, \n\t'compute the javascript now and eliminate the second callback\n\t'jsEnterNewRecord = tmpl.alias + \"_DlgObj.newRecord();\" \n\t\n\tdim optionsX as p\n\toptionsX.specialMode = \"runNewRecord\" \n\tdim pNRO.cloneExisting as l = .f.\n\tdim jsEnterNewRecord as c \n\toptionsX.rtc = rtc \n\toptionsX.rv = e.rv \n\toptionsX.pnRO = pNro\n\ta5_ajax_Dialog2(tmpl,optionsX)\n\tjsEnterNewRecord = optionsX.returnValue\n\t\n\trtc.javascript.setPrimaryKeyinStateObject = \"\"\n\n\t\n\t\n\t\nelse\n\tjsEnterNewRecord = \"\"\nend if \n\t\n\t\n\n\ndim rtc.javascript.refreshAllControls as c = default \"\"\ndim rtc.javascript.prepareDialog as c = default \"\"\n'This flag must be set to .t., else the Javascript that sets the primaryKey in the state object will be overwritten.\ne.rtc.flagUpdatePrimaryKeysInStateObject = .t.\ndim rtc.javascript.setPrimaryKeyinStateObject as c = default \"\"\ndim e.javascript as c = default \"\"\n\ndim rtc.javascript.refreshDependentListControls as c = default \"\"\t\n\nif rtc.flagRecordWasSaved then\n\tjsToFireAfterSaveEvent = jsToFireAfterSaveEvent + <<%longtxt%\n\t\t(function() {; if({dialog.object}._functions._setInkControlsBackground) {{dialog.object}._functions._setInkControlsBackground(); ; };\n })();\n\t%longtxt%\nend if \n\n\n \n\ne.javascript = \trtc.javascript.refreshDependentListControls + \";\" + crlf()+\\\n\t\t\t\te.javascript + \";\" + crlf()  +\\\n\t\t\t\tjsShowUpdateCommands + crlf() +\\\n\t\t\t\tjsShowErrors + crlf()+\\\n                rtc.javascript.refreshAllControls + crlf() +\\\n\t\t\t\trtc.javascript.setPrimaryKeyinStateObject + crlf()+\\\n\t\t\t\trtc.javascript.prepareDialog + crlf() +\\\n\t\t\t\tjsToFireAfterSaveEvent + crlf()+\\\n\t\t\t\tjsEnterNewRecord + crlf()+\\\n\t\t\t\tjsConfirmationMessage\n\n'set the e.javascriptsystem variable so that in case the user sets e.javascript in their own code, that this value does not get lost\ne.javascriptSystem = e.javascript\t\ne.javascript = \"\"\t\t\t\n\ne.setPrimaryKeyinStateObject = rtc.javascript.setPrimaryKeyinStateObject\t\t\t\t\n\t\t\t\t\n\n\n\n'To edit this action, place insertion point anywhere in the command, then click the 'Action Scripting' button'.\n\n\n\n\n\n'TIP: If you need to write code that performs actions on a SQL database you can use the 'Xbasic SQL Actions Code Generator' by right clicking and selecting the 'Genies...' menu option\n\n'The list of dirty submitted fields is in: e.dirtyColumns. This is a CRLF delimited string of dirty fields (i.e. fields\n'edited by the user). For example:\n'FIRSTNAME\n'QTY_A5INSTANCE3\n\n'========================================================================================================\n'IMPORTANT: If your event handler modifies a value in the e.dataSubmitted object (and that field has NOT\n'been edited by the user), you MUST explicitly add the field to the e.dirtyColumns value yourself.\n'For example, assume that you want to set the Company field to 'Alpha' and the 'Qty' field in row 1 of a repeating section\n'regardless of whether the user edited the value or not:\n'e.dataSubmitted.COMPANY = \"alpha\"\n'e.dataSubmitted.QTY_A5INSTANCE2 = \"2\"\n'e.dirtyColumns = e.dirtyColumns + crlf()+ \"COMPANY\" + crlf() + \"QTY_A5INSTANCE2\"\n'========================================================================================================\n\n\n'--------------------Repeating Sections ----------------------------------------\n'If your dialog contains repeating sections, data in the repeating sections will be in an array.\n'For example, say that your dialog has a repeating section that includes a field called QTY:\n'e.dataSubmitted.qty[1] - contains data from first repeating section row\n'e.dataSubmitted.qty[2] - contains data from second repeating section row, etc\n'e.dataSubmitted.favoriteColors[2][3] - contains data from the second row - 'favoriteColors' is a multi-select control - returns the 3rd choice the user made\n'e.dataSubmitted.qty.size() - number of entries in the array.\n\n'In addition, the e object will contain information about the repeating sections\n'e.repeatingSectionNames - a comma delimited list of the name (container ID) or each repeating section\n'e.repeatingSectionInfo - a property array with one entry for each repeating section.\n'The e.repeatingSectionInfo[] array will have these properties for each entry:\n' - .activeRow - the row in the repeating section that had focus when the Dialog was submitted\n' - .deletedRows - a CRLF delimited list of rows that were deleted. e.g. 1 and 3\n' - .rowCount - a count of the number of non-deleted rows\n' - .totalRowCount - a count of all rows in the repeating section including rows that were deleted\n' - .fieldsInRepeating section - a CRLF delimited list of fields in the repeating section\n' - .dirtyRowsInSection - a CRLF delimited list of rows in the repeating section that were edited. (A row that was edited, then deleted will still appear in this list).\n' - .dirtyFieldsInSection - a CRLF delimited list of fields in the repeating section that were edited. for example: PARTNO_A5INSTANCE3 is the 'PARTNO' field in row 3.\n\n'-------------------------------------------------------------------------------------------\n\n'Request - The Request object. Includes Request.Variables, which should be used instead of the older e.rv construct\n'Session - The Session object. Should be used instead of the older e.session construct\n\n'Also inside e:\n'e.tmpl = Component definition\n'e.rtc = Runtime calculations - you can use this to store data to be passed to other server side events (Note: the 'rtc' object cannot be used to persist state information - i.e. you can't set a value in rtc and then read that value in a subsequent callback. To persist state info see e._state).\n'e.arguments = SQL::Arguments object with values for each of the arguments defined in this component.  To read a value from arguments: e.arguments.find(\"argumentName\").data\n\n\n'You can set these properties:\n'e.url - if you want to redirect to another page, set this property\n'e.javascript - if you want to send some javascript back to the browser, set this property.\n\n'TIP: If you want to set the form back to a 'clean' state (which will cause the Submit/Reset buttons to go back to disabled) you should send the following \n'Javascript back to the browser:\n'e.javascript = \"{dialog.object}.resetForm(false); //false suppresses the confirmation mesage\"\n\n'You can set 'state' variables in this event. The value of any state variables will be available in all subsequent ajax callbacks.\n'To set a state variable:\n'e._state.myvar1 = \"value1\"\n'e._state.myvar2 = \"value2\"\n\n'To read the value of a 'state' variable that was previously set:\n'e._state.myvar1\n\n'-------------------Closing the Window in Which the UX Component is Hosted -------------------------\n'In certain cases the UX component will have been opened in a pop-up Ajax window and you will want code in this event handler to close the pop-up window.\n'Here is how you can do this:\n'a) In the action that opens the UX in a window, set the Window title to something like this: MyWindowTitle<span id=\"mywindowid\"></span>\n'b) In this event handler set e.javascript to: \n'\tvar ele = $('mywindowid');\n'\t{dialog.object}.closeContainerWindow(ele);\n\n'NOTE: If you have used Server-side Action Scripting in this event to save the submitted data to a table, then you might want to reference\n'the rtc.flagRecordWasSaved variable (which is set by the Action Script) to decide if the window should be closed or not. In addition, since the\n'Server-side Action will have already set the value of the e.javascript variable, you will want to append your code to e.javascript, as follows:\n'e.javascript = e.javascript + crlf() + var ele = $('mywindowid'); + crlf() + {dialog.object}.closeContainerWindow(ele);\n\n\nend function\n"
             }
         },
-        "XbasicFunctionDeclarations": "Function emailSendSMTP as c (e as p) \nON ERROR GOTO ErrorHandler\n\t\n\tdim pm as P\n\tdim ps as P\n\t\t \n\tif (email_smtp_open(ps, \"smtpout.secureserver.net\", 465, \"terry@caltrax.online\",\"Tree3Dogs%\", \"SSL\")) then\t\n'\tif (email_smtp_open(ps, \"smtp.office365.com\", 587, \"terry@caltrax.online\", \"Tree3Dogs%\", \"STARTTLS\")) then\n\n\t\tpm.to = \"terry@caltrax.online\"\n\t\tpm.from = e._currentRowDataNew.email\n\t\tpm.subject = \"HELP ... IT Issue\"\n\t\tpm.html_message = \"Issue: \" + e._currentRowDataNew.issue \n\t\temail_smtp_send(pm, ps)\n\tend if\n\temail_smtp_close(ps)\n\t\n\tEXIT FUNCTION\n\t\nErrorHandler:\n\n\terr = error_code_get()\n\tmsg = error_text_get(err)\n\tlog_msg = \"Error # found \" + err + \" in emailSendSTMP(): \" + msg\t\n\tTRACE.writeLn(log_msg, \"emailSendSMTP\")\n\t\n\temailSendSMTP = \"Problem executing callback\"\n\t\t\nend function\n\n\nfunction emailSemdMandrill as c (e as p)\n\tdim pm as p\n\tpm.send_to = \"large.terry@.com\"\n\tpm.from_email = e._currentRowDataNew.email\n\tpm.subject = \"HELP ... IT Issue\"\n\tpm.message_html = e._currentRowDataNew.issue\n\t\n\tdim pResult as p\n\temail_send_mandrill(\"620edb980cede90d3afe8cfdedc5b2b6-us8\",pm)\n\t\nend function",
+        "XbasicFunctionDeclarations": "Function emailSendSMTP as c (e as p) \nON ERROR GOTO ErrorHandler\n\t\n\tdim pm as P\n\tdim ps as P\n\t\t \n'\tif (email_smtp_open(ps, \"smtpout.secureserver.net\", 465, \"terry@caltrax.online\",\"Tree3Dogs%\", \"SSL\")) then\t\n\tif (email_smtp_open(ps, \"smtp.office365.com\", 587, \"terry@caltrax.online\", \"Tree3Dogs%\", \"STARTTLS\")) then\n\n\t\tpm.to = \"terry@caltrax.online\"\n\t\tpm.from = e._currentRowDataNew.email\n\t\tpm.subject = \"HELP ... IT Issue\"\n\t\tpm.html_message = \"Issue: \" + e._currentRowDataNew.issue \n\t\temail_smtp_send(pm, ps)\n\tend if\n\temail_smtp_close(ps)\n\t\n\tEXIT FUNCTION\n\t\nErrorHandler:\n\n\terr = error_code_get()\n\tmsg = error_text_get(err)\n\tlog_msg = \"Error # found \" + err + \" in emailSendSTMP(): \" + msg\t\n\tTRACE.writeLn(log_msg, \"emailSendSMTP\")\n\t\n\temailSendSMTP = \"Problem executing callback\"\n\t\t\nend function\n\n\nfunction emailSemdMandrill as c (e as p)\n\tdim pm as p\n\tpm.send_to = \"large.terry@.com\"\n\tpm.from_email = e._currentRowDataNew.email\n\tpm.subject = \"HELP ... IT Issue\"\n\tpm.message_html = e._currentRowDataNew.issue\n\t\n\tdim pResult as p\n\temail_send_mandrill(\"620edb980cede90d3afe8cfdedc5b2b6-us8\",pm)\n\t\nend function",
         "onTimerEventInterval": 60,
         "securityDeniedAction": "Redirect to login page",
         "clientSideEvents": {
@@ -187,7 +187,7 @@
                     "primaryKeyIsAutoIncrement": true,
                     "sequenceName": "",
                     "UpdateWhereClause": "{ID}=ID = :old_ID\n{datetime}=([datetime] = :old_datetime OR [datetime] IS NULL AND :old_datetime IS NULL)\n{userfullname}=(userfullname = :old_userfullname OR userfullname IS NULL AND :old_userfullname IS NULL)\n{loginName}=(loginName = :old_loginName OR loginName IS NULL AND :old_loginName IS NULL)\n{loginPassword}=(loginPassword = :old_loginPassword OR loginPassword IS NULL AND :old_loginPassword IS NULL)\n{email}=(email = :old_email OR email IS NULL AND :old_email IS NULL)\n{phoneextension}=(phoneextension = :old_phoneextension OR phoneextension IS NULL AND :old_phoneextension IS NULL)\n{IPaddress}=(IPaddress = :old_IPaddress OR IPaddress IS NULL AND :old_IPaddress IS NULL)\n{phonecall}=phonecall = :old_phonecall\n{remotein}=remotein = :old_remotein\n{videoexplanation}=videoexplanation = :old_videoexplanation\n{onsitevist}=onsitevist = :old_onsitevist\n{issue}=(issue = :old_issue OR issue IS NULL AND :old_issue IS NULL)\n",
-                    "tableInfoCRC": 4294907295,
+                    "tableInfoCRC": 4294906139,
                     "flagOverwriteExistingPrimaryKeySettings": false,
                     "fieldList": "ID\ndatetime\nuserfullname\nloginName\nloginPassword\nemail\nphoneextension\nIPaddress\nphonecall\nremotein\nvideoexplanation\nonsitevist\nissue\n",
                     "flagExistingPrimaryKeyIsValid": true,
@@ -201,7 +201,7 @@
             "createdBy": "terry",
             "dateCreated": "2020-4-26",
             "dateLastEdited": "2020-4-30",
-            "revisionnumber": 65
+            "revisionnumber": 68
         },
         "flagShowCommentsInTree": true,
         "treeCommentOffset": "6",
@@ -246,9 +246,6 @@
                 "displayOD": "{Data=1593d9e2_3312_498b_b490_2ea777521489}",
                 "displayODtree": "{Data=1593d9e2_3312_498b_b490_2ea777521489}",
                 "crc": "4294922589",
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "v": {
                     "controlType": "textbox",
                     "variableName": "ID",
@@ -257,12 +254,14 @@
                     "watermark": {
                         "text": "<FieldLabel>"
                     },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
+                    },
                     "lookup": {
                         "editCombo": {
                             "openLookupOnFocus": false
                         }
                     },
-                    "textboxSubTheme": "",
                     "textboxAutocorrect": true,
                     "textboxAutoCapitalize": true,
                     "label": "Id",
@@ -283,8 +282,6 @@
                     "clientSideFormat": {
                         "type": "Mask"
                     },
-                    "getFunction": "",
-                    "setFunction": "",
                     "onChange_ValidationOption": "Client-side only",
                     "dataBinding": {
                         "updateable": true,
@@ -302,29 +299,35 @@
                             "inkunits": 1
                         }
                     },
+                    "textboxSubTheme": "",
+                    "getFunction": "",
+                    "setFunction": "",
                     "datePicker": {
+                        "displayTimePicker": false,
+                        "openMethod": "ClickIcon",
+                        "dateFormat": "<Default>",
+                        "iconNumber": 2,
+                        "timePickerOptionsDefined": false,
+                        "display": false,
                         "friendlyDisplay": {
                             "enabled": false,
                             "settingsJSON": ""
                         },
-                        "display": false,
-                        "displayTimePicker": false,
-                        "timePickerOptionsDefined": false,
-                        "openMethod": "ClickIcon",
                         "useComboBoxes": true,
-                        "dateFormat": "<Default>",
                         "lowYear": 1950,
                         "highYear": 2050,
                         "switchYear": 30,
-                        "iconNumber": 2,
                         "lowDate": "",
                         "highDate": "",
                         "disabledDays": "",
                         "disabledDates": ""
                     },
+                    "displayAsSlider": false,
+                    "flags": {
+                        "clientSideDefinition": false
+                    },
                     "specialtype": "None",
                     "specialtypeJSON": "",
-                    "displayAsSlider": false,
                     "info": {
                         "level": 0,
                         "isContainerStart": false,
@@ -351,19 +354,16 @@
                     "listView": {
                         "class": "",
                         "allchildren": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
-                    },
-                    "flags": {
-                        "clientSideDefinition": false
                     }
                 },
                 "precalc": {
                     "ControlHTML": "<span><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.ID\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"width: 200px; \"    name=\"V.R{grid.rownumber}.ID\"    value=\"\"    />\n</span>",
                     "DesignViewHTML": "",
                     "columnInfo": "'ID': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'N'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -373,9 +373,6 @@
                 "displayOD": "{Data=660fb9a5_9e49_45ab_8c0c_c08e9a8fbbcc}",
                 "displayODtree": "{Data=660fb9a5_9e49_45ab_8c0c_c08e9a8fbbcc}",
                 "crc": "4294953820",
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "v": {
                     "controlType": "textbox",
                     "variableName": "datetime",
@@ -384,12 +381,17 @@
                     "watermark": {
                         "text": "<FieldLabel>"
                     },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": "",
+                        "javascript_Lookupfields": "if(!{dialog.componentName}_DlgObj.fieldHelpers['DATETIME']) {  {dialog.componentName}_DlgObj.fieldHelpers['DATETIME'] = new A5.EditDateTime({\n\ttheme: '{dialog.style}',\n\tdateTime: {\n\t\tformat: '<DefaultDateFormat>',\n\t\tdatePicker: {\n\t\t\tdays: {dialog.object}.datePickerDayNames,\n\t\t\tmonths: {dialog.object}.datePickerMonthNames,\n\t\t\tstartDay: {dialog.object}.datePickerFirstDayOfWeek-1,\n\t\t\tcalendar: {\n\t\t\t\tlockColumnWidth: false,\n\t\t\t\tdaysOfWeek: {\n\t\t\t\t\tshow: true\n\t\t\t\t},\n\t\t\t\tweeksOfYear: {\n\t\t\t\t\tshow: false\n\t\t\t\t}\n\t\t\t},\n\t\t\tnavigator: {\n\t\t\t\theader: {\n\t\t\t\t\ttodayButton: {\n\t\t\t\t\t\tshow: true,\n\t\t\t\t\t\thtml: {dialog.object}.datePickerTodayButton,\n\t\t\t\t\t\ttip: ''\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t},\n\t\t\tdisabledDates: {\n\t\t\t\tlow: '',\n\t\t\t\thigh: '',\n\t\t\t\tdays: []\n\t\t\t}\n\t\t},\n\t\tswitchYear: 30\n\t},\n\twindow: {\n\t\tautoGenerateButtons: false,\n\t\tbuttons: {\n\t\t\titems: [\n\t\t\t{\n\t\t\t\thtml: 'OK',\n\t\t\t\taction: 'commit'\n\t\t\t},\n\t\t\t{\n\t\t\t\thtml: 'Cancel',\n\t\t\t\taction: 'close'\n\t\t\t}]\n\t\t}\n\t},\n\tonSelect: function() {$e.execute(this,'change');} ,\n\tmultiple: {\n\t\tallow: false\n\t},\n\tselectionRequired: false\n});}",
+                        "xbasic_LookupfieldsPopulate": "",
+                        "javascriptDatePicker": ""
+                    },
                     "lookup": {
                         "editCombo": {
                             "openLookupOnFocus": false
                         }
                     },
-                    "textboxSubTheme": "",
                     "textboxAutocorrect": true,
                     "textboxAutoCapitalize": true,
                     "label": "Date Reported",
@@ -411,8 +413,6 @@
                     "clientSideFormat": {
                         "type": "Mask"
                     },
-                    "getFunction": "",
-                    "setFunction": "",
                     "onChange_ValidationOption": "Client-side only",
                     "dataBinding": {
                         "updateable": true,
@@ -430,20 +430,35 @@
                             "inkunits": 1
                         }
                     },
+                    "textboxSubTheme": "",
+                    "getFunction": "",
+                    "setFunction": "",
                     "datePicker": {
+                        "displayTimePicker": false,
+                        "openMethod": "ClickIcon",
+                        "dateFormat": "<Default>",
+                        "iconNumber": 2,
+                        "OKButtonLabel": "OK",
+                        "CancelButtonLabel": "Cancel",
+                        "userMustSelectFromDatePicker": false,
+                        "multiple": {
+                            "allow": false,
+                            "separators": ".."
+                        },
+                        "hasMask": false,
+                        "format": {
+                            "mask": ""
+                        },
+                        "timePickerOptionsDefined": false,
+                        "display": true,
                         "friendlyDisplay": {
                             "enabled": false,
                             "settingsJSON": ""
                         },
-                        "display": true,
-                        "timePickerOptionsDefined": false,
-                        "openMethod": "ClickIcon",
                         "useComboBoxes": true,
-                        "dateFormat": "<Default>",
                         "lowYear": 1950,
                         "highYear": 2050,
                         "switchYear": 30,
-                        "iconNumber": 2,
                         "lowDate": "",
                         "highDate": "",
                         "disabledDays": "",
@@ -455,10 +470,7 @@
                         "showDaysOfWeek": true,
                         "showWeeksOfYear": false,
                         "showTodayButton": true,
-                        "OKButtonLabel": "OK",
-                        "CancelButtonLabel": "Cancel",
                         "lockColumnWidths": false,
-                        "userMustSelectFromDatePicker": false,
                         "drawBoxAroundDates": false,
                         "dateItemHoverClassName": "",
                         "dateItemSelectedClassName": "",
@@ -475,16 +487,11 @@
                             "onNavigate": "",
                             "onMonthNavigate": "",
                             "onYearNavigate": ""
-                        },
-                        "multiple": {
-                            "allow": false,
-                            "separators": ".."
-                        },
-                        "hasMask": false,
-                        "format": {
-                            "mask": ""
-                        },
-                        "displayTimePicker": false
+                        }
+                    },
+                    "displayAsSlider": false,
+                    "flags": {
+                        "clientSideDefinition": false
                     },
                     "specialtype": "None",
                     "specialtypeJSON": "",
@@ -511,25 +518,18 @@
                         "display": "{B=White,Light Blue}{Data=660fb9a5_9e49_45ab_8c0c_c08e9a8fbbcc}{I:'$$control.edit'} [datetime] �",
                         "parentPanelCardId": ""
                     },
-                    "displayAsSlider": false,
                     "listView": {
                         "class": ""
-                    },
-                    "flags": {
-                        "clientSideDefinition": false
-                    },
-                    "precalc": {
-                        "javascript_Lookupfields": "if(!{dialog.componentName}_DlgObj.fieldHelpers['DATETIME']) {  {dialog.componentName}_DlgObj.fieldHelpers['DATETIME'] = new A5.EditDateTime({\n\ttheme: '{dialog.style}',\n\tdateTime: {\n\t\tformat: '<DefaultDateFormat>',\n\t\tdatePicker: {\n\t\t\tdays: {dialog.object}.datePickerDayNames,\n\t\t\tmonths: {dialog.object}.datePickerMonthNames,\n\t\t\tstartDay: {dialog.object}.datePickerFirstDayOfWeek-1,\n\t\t\tcalendar: {\n\t\t\t\tlockColumnWidth: false,\n\t\t\t\tdaysOfWeek: {\n\t\t\t\t\tshow: true\n\t\t\t\t},\n\t\t\t\tweeksOfYear: {\n\t\t\t\t\tshow: false\n\t\t\t\t}\n\t\t\t},\n\t\t\tnavigator: {\n\t\t\t\theader: {\n\t\t\t\t\ttodayButton: {\n\t\t\t\t\t\tshow: true,\n\t\t\t\t\t\thtml: {dialog.object}.datePickerTodayButton,\n\t\t\t\t\t\ttip: ''\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t},\n\t\t\tdisabledDates: {\n\t\t\t\tlow: '',\n\t\t\t\thigh: '',\n\t\t\t\tdays: []\n\t\t\t}\n\t\t},\n\t\tswitchYear: 30\n\t},\n\twindow: {\n\t\tautoGenerateButtons: false,\n\t\tbuttons: {\n\t\t\titems: [\n\t\t\t{\n\t\t\t\thtml: 'OK',\n\t\t\t\taction: 'commit'\n\t\t\t},\n\t\t\t{\n\t\t\t\thtml: 'Cancel',\n\t\t\t\taction: 'close'\n\t\t\t}]\n\t\t}\n\t},\n\tonSelect: function() {$e.execute(this,'change');} ,\n\tmultiple: {\n\t\tallow: false\n\t},\n\tselectionRequired: false\n});}",
-                        "xbasic_LookupfieldsPopulate": "",
-                        "javascriptDatePicker": "",
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 200px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.DATETIME\" for=\"{grid.componentname}.V.R{grid.rownumber}.DATETIME\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Date Reported</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><table id=\"{dialog.componentname}.V.R{dialog.rownumber}.DATETIME.CONTAINER\" cellspacing=\"0\" cellpadding=\"0\" class=\"[theme:editButtonGroup.base.container.className|{grid.style}EditBG]\" style=\"width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;; display: inline-table; white-space:normal; \">\n<tr>\n<td style=\"width:100%\">\n\t<input  \tid=\"{dialog.componentname}.V.R{dialog.rownumber}.DATETIME\" name=\"V.R{grid.rownumber}.DATETIME\"  value=\"\"    autocomplete=\"off\"   size=\"200\" class=\"[theme:editButtonGroup.base.container.editClassName|class.editButtonGroupEdit]\" style=\"font-size: 14px; width: 100%; ; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\" />\n\t\n</td>\n\t\t<td class=\"[theme:editButtonGroup.base.container.separatorClassName|{grid.style}EditBGSeparator]\" >&nbsp;</td>\n\t\t<td id=\"{dialog.componentname}.V.R{dialog.rownumber}.DATETIME.BUTTON\" class=\"[theme:editButtonGroup.base.container.button.className|{grid.style}EditBGButton]\" style=\"width: 0%;\"><img src=\"{images.edit.datePicker}\" /></td>\n\t</tr>\n</table>\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'DATETIME': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'D'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -546,6 +546,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -655,19 +658,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 300px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.USERFULLNAME\" for=\"{grid.componentname}.V.R{grid.rownumber}.USERFULLNAME\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Your Name</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.USERFULLNAME\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.USERFULLNAME\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'USERFULLNAME': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'C'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -684,6 +684,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -793,19 +796,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 300px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.EMAIL\" for=\"{grid.componentname}.V.R{grid.rownumber}.EMAIL\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Your eMail Address</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.EMAIL\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.EMAIL\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'EMAIL': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'C'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -822,6 +822,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -931,19 +934,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 300px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.LOGINNAME\" for=\"{grid.componentname}.V.R{grid.rownumber}.LOGINNAME\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Login Name</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.LOGINNAME\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.LOGINNAME\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'LOGINNAME': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'C'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -960,6 +960,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -1069,19 +1072,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 300px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.LOGINPASSWORD\" for=\"{grid.componentname}.V.R{grid.rownumber}.LOGINPASSWORD\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Login Password</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.LOGINPASSWORD\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.LOGINPASSWORD\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'LOGINPASSWORD': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'C'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -1098,6 +1098,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -1196,19 +1199,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 300px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.PHONEEXTENSION\" for=\"{grid.componentname}.V.R{grid.rownumber}.PHONEEXTENSION\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Extension or Mobile Number</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.PHONEEXTENSION\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.PHONEEXTENSION\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'PHONEEXTENSION': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'N'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -1225,6 +1225,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -1334,19 +1337,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 300px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.IPADDRESS\" for=\"{grid.componentname}.V.R{grid.rownumber}.IPADDRESS\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Enter Your IP Address</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.IPADDRESS\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.IPADDRESS\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'IPADDRESS': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'C'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "layout_directive_FrameBegin",
@@ -1354,11 +1354,6 @@
                 "idInternal": "e801bdb1-fb91-400b-a2a6-35aaa4c7efdd",
                 "lastIndex": 14,
                 "crc": "4294921387",
-                "precalc": {
-                    "ControlHTML": "<div class=\"A5CWLayout\"     style=\"width: ; background-color: #fff59d;\"  ><!-- DIV Container for fieldset '{grid.componentname}.FRAME_1'-->\n\t<div>\n\t<fieldset id=\"{dialog.componentName}.V.R{dialog.rowNumber}.FRAME_1\" class=\"\" style=\"-moz-border-radius: 8px;display:inline; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\" >\n\t<legend class=\"\" style=\"font-size: 14px;\"  >Check How You Want Support (check as many as you want)</legend>",
-                    "DesignViewHTML": ""
-                },
-                "containerStartIndex": 0,
                 "v": {
                     "FrameTitle": "Check How You Want Support (check as many as you want)",
                     "Frame": {
@@ -1368,8 +1363,8 @@
                             "Style": "font-size: 14px;"
                         },
                         "type": "Simple",
-                        "nonFloating": false,
                         "initialState": "Shown",
+                        "nonFloating": false,
                         "oneFrameOpenOnly": false
                     },
                     "precalc": {
@@ -1399,7 +1394,12 @@
                         "break": false,
                         "display": "{C=#0+0+127,White}{B=White,Light Blue}{F=+B}{Data=e801bdb1-fb91-400b-a2a6-35aaa4c7efdd}{I:'$$control.group'} [Frame: FRAME_1 (Check How You Want S...)  (Simple) ]"
                     }
-                }
+                },
+                "precalc": {
+                    "ControlHTML": "<div class=\"A5CWLayout\"     style=\"width: ; background-color: #fff59d;\"  ><!-- DIV Container for fieldset '{grid.componentname}.FRAME_1'-->\n\t<div>\n\t<fieldset id=\"{dialog.componentName}.V.R{dialog.rowNumber}.FRAME_1\" class=\"\" style=\"-moz-border-radius: 8px;display:inline; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\" >\n\t<legend class=\"\" style=\"font-size: 14px;\"  >Check How You Want Support (check as many as you want)</legend>",
+                    "DesignViewHTML": ""
+                },
+                "containerStartIndex": 0
             },
             {
                 "controlType": "dialog_formcontrol",
@@ -1410,9 +1410,6 @@
                 "displayOD": "{Data=33120c43_2ed3_4b22_8413_a2abcc273fef}",
                 "displayODtree": "{Data=33120c43_2ed3_4b22_8413_a2abcc273fef}",
                 "crc": "4294961294",
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "v": {
                     "controlType": "Checkbox",
                     "variableName": "phonecall",
@@ -1421,12 +1418,14 @@
                     "watermark": {
                         "text": "<FieldLabel>"
                     },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
+                    },
                     "lookup": {
                         "editCombo": {
                             "openLookupOnFocus": false
                         }
                     },
-                    "textboxSubTheme": "",
                     "textboxAutocorrect": true,
                     "textboxAutoCapitalize": true,
                     "label": "Please Call Me",
@@ -1447,8 +1446,6 @@
                     "clientSideFormat": {
                         "type": "Mask"
                     },
-                    "getFunction": "",
-                    "setFunction": "",
                     "onChange_ValidationOption": "Client-side only",
                     "dataBinding": {
                         "updateable": true,
@@ -1466,76 +1463,32 @@
                             "inkunits": 1
                         }
                     },
+                    "textboxSubTheme": "",
+                    "getFunction": "",
+                    "setFunction": "",
                     "datePicker": {
+                        "displayTimePicker": false,
+                        "openMethod": "ClickIcon",
+                        "dateFormat": "<Default>",
+                        "iconNumber": 2,
+                        "timePickerOptionsDefined": false,
+                        "display": false,
                         "friendlyDisplay": {
                             "enabled": false,
                             "settingsJSON": ""
                         },
-                        "display": false,
-                        "displayTimePicker": false,
-                        "timePickerOptionsDefined": false,
-                        "openMethod": "ClickIcon",
                         "useComboBoxes": true,
-                        "dateFormat": "<Default>",
                         "lowYear": 1950,
                         "highYear": 2050,
                         "switchYear": 30,
-                        "iconNumber": 2,
                         "lowDate": "",
                         "highDate": "",
                         "disabledDays": "",
                         "disabledDates": ""
                     },
-                    "CheckBox": {
-                        "type": "Static",
-                        "choices": "",
-                        "errorinlinestyle": "",
-                        "datasource": "AlphaDAO",
-                        "additionalChoicesPre": "",
-                        "additionalChoicesPost": "",
-                        "choicesVariableName": "",
-                        "logicalCheckboxText": "",
-                        "absoluteLayout": {
-                            "freeformPosition": false,
-                            "hideLabels": true
-                        },
-                        "choicesClassName": "",
-                        "dbf": {
-                            "table": "",
-                            "displayValueField": "",
-                            "storedValueField": "",
-                            "filter": "",
-                            "parameter_string": ""
-                        },
-                        "cs": {
-                            "connectionString": "",
-                            "sql": "",
-                            "parameter_string": ""
-                        },
-                        "maxchoices": 0,
-                        "stylefieldiferror": true,
-                        "notInListRule": "Add to List",
-                        "orientation": "Horizontal",
-                        "verticalSpacing": "",
-                        "columnFlow": "LRTB",
-                        "columnCount": 3,
-                        "rowCount": 3,
-                        "autoSubmitSearch": false,
-                        "flagIsDefined": false,
-                        "renderAsButtonList": false,
-                        "alignment": "Left",
-                        "buttonList": {
-                            "checkedImage": "images/$$generic.check.png.a5image",
-                            "checkedImageUnselected": "",
-                            "javascript": {
-                                "onSelect": "",
-                                "onClick": ""
-                            },
-                            "fillWidth": false,
-                            "buttonStyle": "Image followed by text"
-                        },
-                        "hasCustomDesign": false,
-                        "customStyleCSS": ""
+                    "displayAsSlider": false,
+                    "flags": {
+                        "clientSideDefinition": false
                     },
                     "info": {
                         "level": 1,
@@ -1560,135 +1513,8 @@
                         "display": "{B=White,Light Blue}{I:'vertline'}{Data=33120c43_2ed3_4b22_8413_a2abcc273fef}{I:'$$control.checkbox'} [phonecall] �",
                         "parentPanelCardId": ""
                     },
-                    "displayAsSlider": false,
                     "listView": {
                         "class": ""
-                    },
-                    "radiobutton": {
-                        "renderAsButtonList": false
-                    },
-                    "buttonList": {
-                        "direction": "Horizontal",
-                        "width": "",
-                        "allowMultipleSelection": true,
-                        "methodForDefining": "ButtonListBuilder",
-                        "dataSeriesMapping": "",
-                        "buttons": {
-                            "isDefined": false
-                        },
-                        "javascript": {
-                            "onSelect": "",
-                            "onClick": ""
-                        },
-                        "buttonInlineStyle": "text-align: left;",
-                        "buttonClassName": "",
-                        "buttonFirstClassName": "",
-                        "buttonMiddleClassName": "",
-                        "buttonLastClassName": "",
-                        "buttonHoverClassName": "",
-                        "buttonPressedClassName": "",
-                        "buttonDisabledClassName": "",
-                        "buttonIconStyle": "float: right;",
-                        "buttonIconClassName": "",
-                        "buttonStyle": "Image followed by text"
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
-                    },
-                    "flags": {
-                        "clientSideDefinition": false
-                    }
-                },
-                "precalc": {
-                    "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.PHONECALL\" for=\"{grid.componentname}.V.R{grid.rownumber}.PHONECALL\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Call Me</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.PHONECALL}</span>[[dialog.logicalcheckboxParameters.phonecall||name=V.R{grid.rownumber}.PHONECALL|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.PHONECALL|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
-                    "DesignViewHTML": "",
-                    "columnInfo": "'PHONECALL': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
-                }
-            },
-            {
-                "controlType": "dialog_formcontrol",
-                "display": "{B=White,Light Blue}{I:'vertline'}{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}{I:'$$control.checkbox'} [remotein] �",
-                "displayODFlat": "{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}",
-                "idInternal": "31eafd48_25f3_44ad_b0b5_eb7e458904ec",
-                "parentContainer": 9,
-                "displayOD": "{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}",
-                "displayODtree": "{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}",
-                "crc": "4294920429",
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
-                "v": {
-                    "controlType": "Checkbox",
-                    "variableName": "remotein",
-                    "type": "Logical",
-                    "maxLength": -1,
-                    "watermark": {
-                        "text": "<FieldLabel>"
-                    },
-                    "lookup": {
-                        "editCombo": {
-                            "openLookupOnFocus": false
-                        }
-                    },
-                    "textboxSubTheme": "",
-                    "textboxAutocorrect": true,
-                    "textboxAutoCapitalize": true,
-                    "label": "Please Remote In and Help Me",
-                    "class": "<Default>",
-                    "style": "font-size: 14px;",
-                    "breakType": "After",
-                    "breakHeight": ".1in",
-                    "breakHorizontalSpace": ".1in",
-                    "labelClass": "<Default>",
-                    "labelStyle": "font-size: 12px; padding: 10px;",
-                    "labelPosition": "Above",
-                    "labelWidth": "{Global.LabelWidth}",
-                    "labelAlignment": "Left",
-                    "repeatingSectionColumnHeading": "<FieldLabel>",
-                    "helpIcon": "images/$$generic.help.png.a5image",
-                    "showHelpIcon": "None",
-                    "helpIconBehavior": "ShowHelpOnClick",
-                    "clientSideFormat": {
-                        "type": "Mask"
-                    },
-                    "getFunction": "",
-                    "setFunction": "",
-                    "onChange_ValidationOption": "Client-side only",
-                    "dataBinding": {
-                        "updateable": true,
-                        "tableAlias": "tblTechHelp",
-                        "fieldName": "remotein",
-                        "fieldType": "L",
-                        "image": {
-                            "type": "JPG",
-                            "noImageFoundImage": "<None>",
-                            "newRecordImage": "<None>"
-                        },
-                        "ink": {
-                            "hasbackgroundimage": false,
-                            "backgroundimage": "",
-                            "inkunits": 1
-                        }
-                    },
-                    "datePicker": {
-                        "friendlyDisplay": {
-                            "enabled": false,
-                            "settingsJSON": ""
-                        },
-                        "display": false,
-                        "displayTimePicker": false,
-                        "timePickerOptionsDefined": false,
-                        "openMethod": "ClickIcon",
-                        "useComboBoxes": true,
-                        "dateFormat": "<Default>",
-                        "lowYear": 1950,
-                        "highYear": 2050,
-                        "switchYear": 30,
-                        "iconNumber": 2,
-                        "lowDate": "",
-                        "highDate": "",
-                        "disabledDays": "",
-                        "disabledDates": ""
                     },
                     "CheckBox": {
                         "type": "Static",
@@ -1740,6 +1566,133 @@
                         },
                         "hasCustomDesign": false,
                         "customStyleCSS": ""
+                    },
+                    "radiobutton": {
+                        "renderAsButtonList": false
+                    },
+                    "buttonList": {
+                        "direction": "Horizontal",
+                        "width": "",
+                        "allowMultipleSelection": true,
+                        "methodForDefining": "ButtonListBuilder",
+                        "dataSeriesMapping": "",
+                        "buttons": {
+                            "isDefined": false
+                        },
+                        "javascript": {
+                            "onSelect": "",
+                            "onClick": ""
+                        },
+                        "buttonInlineStyle": "text-align: left;",
+                        "buttonClassName": "",
+                        "buttonFirstClassName": "",
+                        "buttonMiddleClassName": "",
+                        "buttonLastClassName": "",
+                        "buttonHoverClassName": "",
+                        "buttonPressedClassName": "",
+                        "buttonDisabledClassName": "",
+                        "buttonIconStyle": "float: right;",
+                        "buttonIconClassName": "",
+                        "buttonStyle": "Image followed by text"
+                    }
+                },
+                "precalc": {
+                    "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.PHONECALL\" for=\"{grid.componentname}.V.R{grid.rownumber}.PHONECALL\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Call Me</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.PHONECALL}</span>[[dialog.logicalcheckboxParameters.phonecall||name=V.R{grid.rownumber}.PHONECALL|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.PHONECALL|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
+                    "DesignViewHTML": "",
+                    "columnInfo": "'PHONECALL': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
+            },
+            {
+                "controlType": "dialog_formcontrol",
+                "display": "{B=White,Light Blue}{I:'vertline'}{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}{I:'$$control.checkbox'} [remotein] �",
+                "displayODFlat": "{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}",
+                "idInternal": "31eafd48_25f3_44ad_b0b5_eb7e458904ec",
+                "parentContainer": 9,
+                "displayOD": "{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}",
+                "displayODtree": "{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}",
+                "crc": "4294920429",
+                "v": {
+                    "controlType": "Checkbox",
+                    "variableName": "remotein",
+                    "type": "Logical",
+                    "maxLength": -1,
+                    "watermark": {
+                        "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
+                    },
+                    "lookup": {
+                        "editCombo": {
+                            "openLookupOnFocus": false
+                        }
+                    },
+                    "textboxAutocorrect": true,
+                    "textboxAutoCapitalize": true,
+                    "label": "Please Remote In and Help Me",
+                    "class": "<Default>",
+                    "style": "font-size: 14px;",
+                    "breakType": "After",
+                    "breakHeight": ".1in",
+                    "breakHorizontalSpace": ".1in",
+                    "labelClass": "<Default>",
+                    "labelStyle": "font-size: 12px; padding: 10px;",
+                    "labelPosition": "Above",
+                    "labelWidth": "{Global.LabelWidth}",
+                    "labelAlignment": "Left",
+                    "repeatingSectionColumnHeading": "<FieldLabel>",
+                    "helpIcon": "images/$$generic.help.png.a5image",
+                    "showHelpIcon": "None",
+                    "helpIconBehavior": "ShowHelpOnClick",
+                    "clientSideFormat": {
+                        "type": "Mask"
+                    },
+                    "onChange_ValidationOption": "Client-side only",
+                    "dataBinding": {
+                        "updateable": true,
+                        "tableAlias": "tblTechHelp",
+                        "fieldName": "remotein",
+                        "fieldType": "L",
+                        "image": {
+                            "type": "JPG",
+                            "noImageFoundImage": "<None>",
+                            "newRecordImage": "<None>"
+                        },
+                        "ink": {
+                            "hasbackgroundimage": false,
+                            "backgroundimage": "",
+                            "inkunits": 1
+                        }
+                    },
+                    "textboxSubTheme": "",
+                    "getFunction": "",
+                    "setFunction": "",
+                    "datePicker": {
+                        "displayTimePicker": false,
+                        "openMethod": "ClickIcon",
+                        "dateFormat": "<Default>",
+                        "iconNumber": 2,
+                        "timePickerOptionsDefined": false,
+                        "display": false,
+                        "friendlyDisplay": {
+                            "enabled": false,
+                            "settingsJSON": ""
+                        },
+                        "useComboBoxes": true,
+                        "lowYear": 1950,
+                        "highYear": 2050,
+                        "switchYear": 30,
+                        "lowDate": "",
+                        "highDate": "",
+                        "disabledDays": "",
+                        "disabledDates": ""
+                    },
+                    "displayAsSlider": false,
+                    "flags": {
+                        "clientSideDefinition": false
                     },
                     "info": {
                         "level": 1,
@@ -1764,135 +1717,8 @@
                         "display": "{B=White,Light Blue}{I:'vertline'}{Data=31eafd48_25f3_44ad_b0b5_eb7e458904ec}{I:'$$control.checkbox'} [remotein] �",
                         "parentPanelCardId": ""
                     },
-                    "displayAsSlider": false,
                     "listView": {
                         "class": ""
-                    },
-                    "radiobutton": {
-                        "renderAsButtonList": false
-                    },
-                    "buttonList": {
-                        "direction": "Horizontal",
-                        "width": "",
-                        "allowMultipleSelection": true,
-                        "methodForDefining": "ButtonListBuilder",
-                        "dataSeriesMapping": "",
-                        "buttons": {
-                            "isDefined": false
-                        },
-                        "javascript": {
-                            "onSelect": "",
-                            "onClick": ""
-                        },
-                        "buttonInlineStyle": "text-align: left;",
-                        "buttonClassName": "",
-                        "buttonFirstClassName": "",
-                        "buttonMiddleClassName": "",
-                        "buttonLastClassName": "",
-                        "buttonHoverClassName": "",
-                        "buttonPressedClassName": "",
-                        "buttonDisabledClassName": "",
-                        "buttonIconStyle": "float: right;",
-                        "buttonIconClassName": "",
-                        "buttonStyle": "Image followed by text"
-                    },
-                    "flags": {
-                        "clientSideDefinition": false
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
-                    }
-                },
-                "precalc": {
-                    "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.REMOTEIN\" for=\"{grid.componentname}.V.R{grid.rownumber}.REMOTEIN\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Remote In and Help Me</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.REMOTEIN}</span>[[dialog.logicalcheckboxParameters.remotein||name=V.R{grid.rownumber}.REMOTEIN|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.REMOTEIN|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
-                    "DesignViewHTML": "",
-                    "columnInfo": "'REMOTEIN': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
-                }
-            },
-            {
-                "controlType": "dialog_formcontrol",
-                "display": "{B=White,Light Blue}{I:'vertline'}{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}{I:'$$control.checkbox'} [videoexplanation] �",
-                "displayODFlat": "{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}",
-                "idInternal": "aefca2bc_f9ff_4503_8920_573b9762dbbd",
-                "parentContainer": 9,
-                "displayOD": "{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}",
-                "displayODtree": "{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}",
-                "crc": "4294935474",
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
-                "v": {
-                    "controlType": "Checkbox",
-                    "variableName": "videoexplanation",
-                    "type": "Logical",
-                    "maxLength": -1,
-                    "watermark": {
-                        "text": "<FieldLabel>"
-                    },
-                    "lookup": {
-                        "editCombo": {
-                            "openLookupOnFocus": false
-                        }
-                    },
-                    "textboxSubTheme": "",
-                    "textboxAutocorrect": true,
-                    "textboxAutoCapitalize": true,
-                    "label": "Please Make a Video of the Solution",
-                    "class": "<Default>",
-                    "style": "font-size: 14px;",
-                    "breakType": "After",
-                    "breakHeight": ".1in",
-                    "breakHorizontalSpace": ".1in",
-                    "labelClass": "<Default>",
-                    "labelStyle": "font-size: 12px; padding: 10px;",
-                    "labelPosition": "Above",
-                    "labelWidth": "{Global.LabelWidth}",
-                    "labelAlignment": "Left",
-                    "repeatingSectionColumnHeading": "<FieldLabel>",
-                    "helpIcon": "images/$$generic.help.png.a5image",
-                    "showHelpIcon": "None",
-                    "helpIconBehavior": "ShowHelpOnClick",
-                    "clientSideFormat": {
-                        "type": "Mask"
-                    },
-                    "getFunction": "",
-                    "setFunction": "",
-                    "onChange_ValidationOption": "Client-side only",
-                    "dataBinding": {
-                        "updateable": true,
-                        "tableAlias": "tblTechHelp",
-                        "fieldName": "videoexplanation",
-                        "fieldType": "L",
-                        "image": {
-                            "type": "JPG",
-                            "noImageFoundImage": "<None>",
-                            "newRecordImage": "<None>"
-                        },
-                        "ink": {
-                            "hasbackgroundimage": false,
-                            "backgroundimage": "",
-                            "inkunits": 1
-                        }
-                    },
-                    "datePicker": {
-                        "friendlyDisplay": {
-                            "enabled": false,
-                            "settingsJSON": ""
-                        },
-                        "display": false,
-                        "displayTimePicker": false,
-                        "timePickerOptionsDefined": false,
-                        "openMethod": "ClickIcon",
-                        "useComboBoxes": true,
-                        "dateFormat": "<Default>",
-                        "lowYear": 1950,
-                        "highYear": 2050,
-                        "switchYear": 30,
-                        "iconNumber": 2,
-                        "lowDate": "",
-                        "highDate": "",
-                        "disabledDays": "",
-                        "disabledDates": ""
                     },
                     "CheckBox": {
                         "type": "Static",
@@ -1944,6 +1770,133 @@
                         },
                         "hasCustomDesign": false,
                         "customStyleCSS": ""
+                    },
+                    "radiobutton": {
+                        "renderAsButtonList": false
+                    },
+                    "buttonList": {
+                        "direction": "Horizontal",
+                        "width": "",
+                        "allowMultipleSelection": true,
+                        "methodForDefining": "ButtonListBuilder",
+                        "dataSeriesMapping": "",
+                        "buttons": {
+                            "isDefined": false
+                        },
+                        "javascript": {
+                            "onSelect": "",
+                            "onClick": ""
+                        },
+                        "buttonInlineStyle": "text-align: left;",
+                        "buttonClassName": "",
+                        "buttonFirstClassName": "",
+                        "buttonMiddleClassName": "",
+                        "buttonLastClassName": "",
+                        "buttonHoverClassName": "",
+                        "buttonPressedClassName": "",
+                        "buttonDisabledClassName": "",
+                        "buttonIconStyle": "float: right;",
+                        "buttonIconClassName": "",
+                        "buttonStyle": "Image followed by text"
+                    }
+                },
+                "precalc": {
+                    "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.REMOTEIN\" for=\"{grid.componentname}.V.R{grid.rownumber}.REMOTEIN\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Remote In and Help Me</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.REMOTEIN}</span>[[dialog.logicalcheckboxParameters.remotein||name=V.R{grid.rownumber}.REMOTEIN|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.REMOTEIN|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
+                    "DesignViewHTML": "",
+                    "columnInfo": "'REMOTEIN': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
+            },
+            {
+                "controlType": "dialog_formcontrol",
+                "display": "{B=White,Light Blue}{I:'vertline'}{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}{I:'$$control.checkbox'} [videoexplanation] �",
+                "displayODFlat": "{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}",
+                "idInternal": "aefca2bc_f9ff_4503_8920_573b9762dbbd",
+                "parentContainer": 9,
+                "displayOD": "{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}",
+                "displayODtree": "{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}",
+                "crc": "4294935474",
+                "v": {
+                    "controlType": "Checkbox",
+                    "variableName": "videoexplanation",
+                    "type": "Logical",
+                    "maxLength": -1,
+                    "watermark": {
+                        "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
+                    },
+                    "lookup": {
+                        "editCombo": {
+                            "openLookupOnFocus": false
+                        }
+                    },
+                    "textboxAutocorrect": true,
+                    "textboxAutoCapitalize": true,
+                    "label": "Please Make a Video of the Solution",
+                    "class": "<Default>",
+                    "style": "font-size: 14px;",
+                    "breakType": "After",
+                    "breakHeight": ".1in",
+                    "breakHorizontalSpace": ".1in",
+                    "labelClass": "<Default>",
+                    "labelStyle": "font-size: 12px; padding: 10px;",
+                    "labelPosition": "Above",
+                    "labelWidth": "{Global.LabelWidth}",
+                    "labelAlignment": "Left",
+                    "repeatingSectionColumnHeading": "<FieldLabel>",
+                    "helpIcon": "images/$$generic.help.png.a5image",
+                    "showHelpIcon": "None",
+                    "helpIconBehavior": "ShowHelpOnClick",
+                    "clientSideFormat": {
+                        "type": "Mask"
+                    },
+                    "onChange_ValidationOption": "Client-side only",
+                    "dataBinding": {
+                        "updateable": true,
+                        "tableAlias": "tblTechHelp",
+                        "fieldName": "videoexplanation",
+                        "fieldType": "L",
+                        "image": {
+                            "type": "JPG",
+                            "noImageFoundImage": "<None>",
+                            "newRecordImage": "<None>"
+                        },
+                        "ink": {
+                            "hasbackgroundimage": false,
+                            "backgroundimage": "",
+                            "inkunits": 1
+                        }
+                    },
+                    "textboxSubTheme": "",
+                    "getFunction": "",
+                    "setFunction": "",
+                    "datePicker": {
+                        "displayTimePicker": false,
+                        "openMethod": "ClickIcon",
+                        "dateFormat": "<Default>",
+                        "iconNumber": 2,
+                        "timePickerOptionsDefined": false,
+                        "display": false,
+                        "friendlyDisplay": {
+                            "enabled": false,
+                            "settingsJSON": ""
+                        },
+                        "useComboBoxes": true,
+                        "lowYear": 1950,
+                        "highYear": 2050,
+                        "switchYear": 30,
+                        "lowDate": "",
+                        "highDate": "",
+                        "disabledDays": "",
+                        "disabledDates": ""
+                    },
+                    "displayAsSlider": false,
+                    "flags": {
+                        "clientSideDefinition": false
                     },
                     "info": {
                         "level": 1,
@@ -1968,135 +1921,8 @@
                         "display": "{B=White,Light Blue}{I:'vertline'}{Data=aefca2bc_f9ff_4503_8920_573b9762dbbd}{I:'$$control.checkbox'} [videoexplanation] �",
                         "parentPanelCardId": ""
                     },
-                    "displayAsSlider": false,
                     "listView": {
                         "class": ""
-                    },
-                    "radiobutton": {
-                        "renderAsButtonList": false
-                    },
-                    "buttonList": {
-                        "direction": "Horizontal",
-                        "width": "",
-                        "allowMultipleSelection": true,
-                        "methodForDefining": "ButtonListBuilder",
-                        "dataSeriesMapping": "",
-                        "buttons": {
-                            "isDefined": false
-                        },
-                        "javascript": {
-                            "onSelect": "",
-                            "onClick": ""
-                        },
-                        "buttonInlineStyle": "text-align: left;",
-                        "buttonClassName": "",
-                        "buttonFirstClassName": "",
-                        "buttonMiddleClassName": "",
-                        "buttonLastClassName": "",
-                        "buttonHoverClassName": "",
-                        "buttonPressedClassName": "",
-                        "buttonDisabledClassName": "",
-                        "buttonIconStyle": "float: right;",
-                        "buttonIconClassName": "",
-                        "buttonStyle": "Image followed by text"
-                    },
-                    "flags": {
-                        "clientSideDefinition": false
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
-                    }
-                },
-                "precalc": {
-                    "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.VIDEOEXPLANATION\" for=\"{grid.componentname}.V.R{grid.rownumber}.VIDEOEXPLANATION\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Make a Video of the Solution</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.VIDEOEXPLANATION}</span>[[dialog.logicalcheckboxParameters.videoexplanation||name=V.R{grid.rownumber}.VIDEOEXPLANATION|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.VIDEOEXPLANATION|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
-                    "DesignViewHTML": "",
-                    "columnInfo": "'VIDEOEXPLANATION': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
-                }
-            },
-            {
-                "controlType": "dialog_formcontrol",
-                "display": "{B=White,Light Blue}{I:'vertline'}{Data=b9206512_13d6_452b_9690_0dc9380018d3}{I:'$$control.checkbox'} [onsitevist] �",
-                "displayODFlat": "{Data=b9206512_13d6_452b_9690_0dc9380018d3}",
-                "idInternal": "b9206512_13d6_452b_9690_0dc9380018d3",
-                "parentContainer": 9,
-                "displayOD": "{Data=b9206512_13d6_452b_9690_0dc9380018d3}",
-                "displayODtree": "{Data=b9206512_13d6_452b_9690_0dc9380018d3}",
-                "crc": "4294908155",
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
-                "v": {
-                    "controlType": "Checkbox",
-                    "variableName": "onsitevist",
-                    "type": "Logical",
-                    "maxLength": -1,
-                    "watermark": {
-                        "text": "<FieldLabel>"
-                    },
-                    "lookup": {
-                        "editCombo": {
-                            "openLookupOnFocus": false
-                        }
-                    },
-                    "textboxSubTheme": "",
-                    "textboxAutocorrect": true,
-                    "textboxAutoCapitalize": true,
-                    "label": "Please Schedule a Time to Come to My Computer",
-                    "class": "<Default>",
-                    "style": "font-size: 14px;",
-                    "breakType": "After",
-                    "breakHeight": ".1in",
-                    "breakHorizontalSpace": ".1in",
-                    "labelClass": "<Default>",
-                    "labelStyle": "font-size: 12px; padding: 10px;",
-                    "labelPosition": "Above",
-                    "labelWidth": "{Global.LabelWidth}",
-                    "labelAlignment": "Left",
-                    "repeatingSectionColumnHeading": "<FieldLabel>",
-                    "helpIcon": "images/$$generic.help.png.a5image",
-                    "showHelpIcon": "None",
-                    "helpIconBehavior": "ShowHelpOnClick",
-                    "clientSideFormat": {
-                        "type": "Mask"
-                    },
-                    "getFunction": "",
-                    "setFunction": "",
-                    "onChange_ValidationOption": "Client-side only",
-                    "dataBinding": {
-                        "updateable": true,
-                        "tableAlias": "tblTechHelp",
-                        "fieldName": "onsitevist",
-                        "fieldType": "L",
-                        "image": {
-                            "type": "JPG",
-                            "noImageFoundImage": "<None>",
-                            "newRecordImage": "<None>"
-                        },
-                        "ink": {
-                            "hasbackgroundimage": false,
-                            "backgroundimage": "",
-                            "inkunits": 1
-                        }
-                    },
-                    "datePicker": {
-                        "friendlyDisplay": {
-                            "enabled": false,
-                            "settingsJSON": ""
-                        },
-                        "display": false,
-                        "displayTimePicker": false,
-                        "timePickerOptionsDefined": false,
-                        "openMethod": "ClickIcon",
-                        "useComboBoxes": true,
-                        "dateFormat": "<Default>",
-                        "lowYear": 1950,
-                        "highYear": 2050,
-                        "switchYear": 30,
-                        "iconNumber": 2,
-                        "lowDate": "",
-                        "highDate": "",
-                        "disabledDays": "",
-                        "disabledDates": ""
                     },
                     "CheckBox": {
                         "type": "Static",
@@ -2149,6 +1975,133 @@
                         "hasCustomDesign": false,
                         "customStyleCSS": ""
                     },
+                    "radiobutton": {
+                        "renderAsButtonList": false
+                    },
+                    "buttonList": {
+                        "direction": "Horizontal",
+                        "width": "",
+                        "allowMultipleSelection": true,
+                        "methodForDefining": "ButtonListBuilder",
+                        "dataSeriesMapping": "",
+                        "buttons": {
+                            "isDefined": false
+                        },
+                        "javascript": {
+                            "onSelect": "",
+                            "onClick": ""
+                        },
+                        "buttonInlineStyle": "text-align: left;",
+                        "buttonClassName": "",
+                        "buttonFirstClassName": "",
+                        "buttonMiddleClassName": "",
+                        "buttonLastClassName": "",
+                        "buttonHoverClassName": "",
+                        "buttonPressedClassName": "",
+                        "buttonDisabledClassName": "",
+                        "buttonIconStyle": "float: right;",
+                        "buttonIconClassName": "",
+                        "buttonStyle": "Image followed by text"
+                    }
+                },
+                "precalc": {
+                    "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.VIDEOEXPLANATION\" for=\"{grid.componentname}.V.R{grid.rownumber}.VIDEOEXPLANATION\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Make a Video of the Solution</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.VIDEOEXPLANATION}</span>[[dialog.logicalcheckboxParameters.videoexplanation||name=V.R{grid.rownumber}.VIDEOEXPLANATION|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.VIDEOEXPLANATION|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
+                    "DesignViewHTML": "",
+                    "columnInfo": "'VIDEOEXPLANATION': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
+            },
+            {
+                "controlType": "dialog_formcontrol",
+                "display": "{B=White,Light Blue}{I:'vertline'}{Data=b9206512_13d6_452b_9690_0dc9380018d3}{I:'$$control.checkbox'} [onsitevist] �",
+                "displayODFlat": "{Data=b9206512_13d6_452b_9690_0dc9380018d3}",
+                "idInternal": "b9206512_13d6_452b_9690_0dc9380018d3",
+                "parentContainer": 9,
+                "displayOD": "{Data=b9206512_13d6_452b_9690_0dc9380018d3}",
+                "displayODtree": "{Data=b9206512_13d6_452b_9690_0dc9380018d3}",
+                "crc": "4294908155",
+                "v": {
+                    "controlType": "Checkbox",
+                    "variableName": "onsitevist",
+                    "type": "Logical",
+                    "maxLength": -1,
+                    "watermark": {
+                        "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
+                    },
+                    "lookup": {
+                        "editCombo": {
+                            "openLookupOnFocus": false
+                        }
+                    },
+                    "textboxAutocorrect": true,
+                    "textboxAutoCapitalize": true,
+                    "label": "Please Schedule a Time to Come to My Computer",
+                    "class": "<Default>",
+                    "style": "font-size: 14px;",
+                    "breakType": "After",
+                    "breakHeight": ".1in",
+                    "breakHorizontalSpace": ".1in",
+                    "labelClass": "<Default>",
+                    "labelStyle": "font-size: 12px; padding: 10px;",
+                    "labelPosition": "Above",
+                    "labelWidth": "{Global.LabelWidth}",
+                    "labelAlignment": "Left",
+                    "repeatingSectionColumnHeading": "<FieldLabel>",
+                    "helpIcon": "images/$$generic.help.png.a5image",
+                    "showHelpIcon": "None",
+                    "helpIconBehavior": "ShowHelpOnClick",
+                    "clientSideFormat": {
+                        "type": "Mask"
+                    },
+                    "onChange_ValidationOption": "Client-side only",
+                    "dataBinding": {
+                        "updateable": true,
+                        "tableAlias": "tblTechHelp",
+                        "fieldName": "onsitevist",
+                        "fieldType": "L",
+                        "image": {
+                            "type": "JPG",
+                            "noImageFoundImage": "<None>",
+                            "newRecordImage": "<None>"
+                        },
+                        "ink": {
+                            "hasbackgroundimage": false,
+                            "backgroundimage": "",
+                            "inkunits": 1
+                        }
+                    },
+                    "textboxSubTheme": "",
+                    "getFunction": "",
+                    "setFunction": "",
+                    "datePicker": {
+                        "displayTimePicker": false,
+                        "openMethod": "ClickIcon",
+                        "dateFormat": "<Default>",
+                        "iconNumber": 2,
+                        "timePickerOptionsDefined": false,
+                        "display": false,
+                        "friendlyDisplay": {
+                            "enabled": false,
+                            "settingsJSON": ""
+                        },
+                        "useComboBoxes": true,
+                        "lowYear": 1950,
+                        "highYear": 2050,
+                        "switchYear": 30,
+                        "lowDate": "",
+                        "highDate": "",
+                        "disabledDays": "",
+                        "disabledDates": ""
+                    },
+                    "displayAsSlider": false,
+                    "flags": {
+                        "clientSideDefinition": false
+                    },
                     "info": {
                         "level": 1,
                         "isContainerStart": false,
@@ -2172,9 +2125,59 @@
                         "display": "{B=White,Light Blue}{I:'vertline'}{Data=b9206512_13d6_452b_9690_0dc9380018d3}{I:'$$control.checkbox'} [onsitevist] �",
                         "parentPanelCardId": ""
                     },
-                    "displayAsSlider": false,
                     "listView": {
                         "class": ""
+                    },
+                    "CheckBox": {
+                        "type": "Static",
+                        "choices": "",
+                        "errorinlinestyle": "",
+                        "datasource": "AlphaDAO",
+                        "additionalChoicesPre": "",
+                        "additionalChoicesPost": "",
+                        "choicesVariableName": "",
+                        "logicalCheckboxText": "",
+                        "absoluteLayout": {
+                            "freeformPosition": false,
+                            "hideLabels": true
+                        },
+                        "choicesClassName": "",
+                        "dbf": {
+                            "table": "",
+                            "displayValueField": "",
+                            "storedValueField": "",
+                            "filter": "",
+                            "parameter_string": ""
+                        },
+                        "cs": {
+                            "connectionString": "",
+                            "sql": "",
+                            "parameter_string": ""
+                        },
+                        "maxchoices": 0,
+                        "stylefieldiferror": true,
+                        "notInListRule": "Add to List",
+                        "orientation": "Horizontal",
+                        "verticalSpacing": "",
+                        "columnFlow": "LRTB",
+                        "columnCount": 3,
+                        "rowCount": 3,
+                        "autoSubmitSearch": false,
+                        "flagIsDefined": false,
+                        "renderAsButtonList": false,
+                        "alignment": "Left",
+                        "buttonList": {
+                            "checkedImage": "images/$$generic.check.png.a5image",
+                            "checkedImageUnselected": "",
+                            "javascript": {
+                                "onSelect": "",
+                                "onClick": ""
+                            },
+                            "fillWidth": false,
+                            "buttonStyle": "Image followed by text"
+                        },
+                        "hasCustomDesign": false,
+                        "customStyleCSS": ""
                     },
                     "radiobutton": {
                         "renderAsButtonList": false
@@ -2203,19 +2206,16 @@
                         "buttonIconStyle": "float: right;",
                         "buttonIconClassName": "",
                         "buttonStyle": "Image followed by text"
-                    },
-                    "flags": {
-                        "clientSideDefinition": false
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 2in\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.ONSITEVIST\" for=\"{grid.componentname}.V.R{grid.rownumber}.ONSITEVIST\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 12px; padding: 10px; display: block; \">Please Schedule a Time to Come to My Computer</label>\n<!--LblE-->\n\t<!--FldS--><span title=\"\" >{dialog.logicalcheckbox.ONSITEVIST}</span>[[dialog.logicalcheckboxParameters.onsitevist||name=V.R{grid.rownumber}.ONSITEVIST|style=font-size: 14px;|id={grid.componentname}.V.R{grid.rownumber}.ONSITEVIST|js=  |spanClass=|textPrompt=|customAttributes=]]\t\n\t\t<!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'ONSITEVIST': {info: {controlType: 'Checkbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'L'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "layout_directive_FrameEnd",
@@ -2274,6 +2274,9 @@
                     "maxLength": -1,
                     "watermark": {
                         "text": "<FieldLabel>"
+                    },
+                    "precalc": {
+                        "javascriptAbstractSetupCode": ""
                     },
                     "lookup": {
                         "editCombo": {
@@ -2383,19 +2386,16 @@
                     },
                     "listView": {
                         "class": ""
-                    },
-                    "precalc": {
-                        "javascriptAbstractSetupCode": ""
                     }
                 },
-                "isCollapsed": false,
-                "parentIsCollapsed": false,
-                "containerStartIndex": 0,
                 "precalc": {
                     "ControlHTML": "<div class=\"A5CWLayout\" style=\"width: 500px\" >\n\t<!--LblS--><label id=\"{grid.componentname}.LBL.R{grid.rownumber}.ISSUE\" for=\"{grid.componentname}.V.R{grid.rownumber}.ISSUE\" title=\"\" class=\"[class.dialogFieldLabel]\" style=\"font-size: 14px; float: left; width: __global.labelWidth__; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\">Describe Your Issue</label>\n<!--LblE--><!--FldS--><div style=\"margin-left: __global.labelWidth__ ;\"><input\ttype=\"text\" id=\"{grid.componentname}.V.R{grid.rownumber}.ISSUE\" title=\"\"     class=\"[theme:edit.base.className|class.dialogInput] \" style=\"font-size: 14px; width: 100%; box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; -webkit-box-sizing: border-box;\"    name=\"V.R{grid.rownumber}.ISSUE\"    value=\"\"    />\n</div><!--FldE-->\n</div><!--breakbegin--><br  style=\"clear:both; \" /><!--breakend-->",
                     "DesignViewHTML": "",
                     "columnInfo": "'ISSUE': {info: {controlType: 'textbox'}, hiddenVal: false, type: 'input,label', isCalc: false, hlp: '', isArray: false, dataType: 'C'  }\n"
-                }
+                },
+                "isCollapsed": false,
+                "parentIsCollapsed": false,
+                "containerStartIndex": 0
             },
             {
                 "controlType": "layout_directive_button",
@@ -2903,7 +2903,7 @@
         "autoSetPreRenderOnForAllUX": false,
         "selected": "6a15ff9c_c8eb_4389_ab8b_d8e8fed7bbe8\n",
         "designPaneIndex": 1,
-        "masterPaneC": "controls",
+        "masterPaneC": "XbasicFunctions",
         "serverSideEventIndex": 4,
         "clientSideEventIndex": 1,
         "clientSideEventIndexC": "1",
@@ -2921,7 +2921,7 @@
         "alphaFiveBuildNumber": "12",
         "openedFromTemplate": false,
         "builtWithVersionNumer": 1,
-        "_buildCount": "64",
+        "_buildCount": "67",
         "securityEnabled": false,
         "showHideIsUsed": true,
         "precalc": {
@@ -3066,7 +3066,7 @@
         "sassProcessor": true,
         "debugMode": false,
         "__jsLibraries": "<script type=\"text/javascript\" src=\"javascript/a5.js\"></script>\n<script type=\"text/javascript\" src=\"javascript/a5_url.js\"></script>\n",
-        "A5SaveTimeStamp": "20200430142743061",
+        "A5SaveTimeStamp": "20200430202317695",
         "a_actionJavascript": [
             {
                 "actionGuid": "134ea5e4-71ef-43c0-a72a-232a1688e334   ",
@@ -3188,7 +3188,7 @@
             "output": {
                 "Head": {
                     "JavaScript": "*gzip:H4sIAAAAAAAAC5WMsQ6CQBAFexP/Aa/Hq+gOOjsqf2Cznq84PPGyuyD8vSQUFlaWM5NM0CipWGVrQesMi/mBZ96tq1Ri677Cc3Me1HXB79wdD+HfAU2Sfyanun/x/bIYZOTcp5uwJGi9NSJByRzBdp1GS08QRVW1NcPe4IcSfQAk7ywxxgAAAA==",
-                    "CSS_Link": "*gzip:H4sIAAAAAAAAC81YbVPbOBC+z53pf9CEMoWZmoTQ3IAD3FCgV2boXSehx92njmLLsYpieWSFQDP891u92JYdO0C5DzceiLVa7e6zWj2SfJjJe0aQvE/JUUeSO9kNsqxz/PpVLGcMLZG3IJMbKj2JUy+m05jBn/QCzrjwkZhO8FbvnX62h4XuPCPCywgjgfRRwhMCXbPMk3wexB4OJOWJlT+8fkUjgWcELRsHq4CU0s7JIOCJxDQhAi0jxrH0GYnkMMVhSJOp30vvrN7p9SW+53OJlnkfeg+dyAxCehSa8Dsvoz9074SLEFyCSIXJf3jtnVl7n42+pd+E9rug4ScaknMhuDjlDFlZ0V6GNEsZvvdN0spRI77QSheQhZqWYxpnuR5aO44mDBLpTRgPboYVJ39RsvjMQ1LqNiidh1RWlWqBgM5FUmits/7EgaseG8I6o0LerzN9ygheyULNe2astFp92qCapyIUoubiCmoaLc0KEiQcRlDYqmaIv5/KqtqnfMFBzSutBVENf8JZ+zCausYnOLiZCj5PQn8jiiIcYTQXbOstneEpybpvoDi7b5SV7v7dfvdNRBnrfk03Bx/PKJ7yBDP/OqaSbO6dbPb3+oPBZv+0v3dg/u+kyXQHD7Spt9tDU+7+bnqHMs5oiDai/f3hDIspTWDtp34flmG+JtV7C4KLJJ1XErRiWAmNXSWsjXRytmKi32SipI6xZh0SfphLqdYLT3FA5b2/MxhCYiQYwCyN8ZaVHw2A9MzIi+SWZnTCyCWUJVo6Wa9zpNHXZKSqBNgMBepX0YWMgaaKpCAVGFrQUMb2PTbTbxr8lggws/BRTMOQJENU8J3ut+hMw+I3tKJDpUwhy4dCVOZRBJoT7QmkMTkliVScWyVTO6uKTH08lzyfZqED1BJF3R5WJnwUaCOttPvQ4PcSTLd4bXGyltkfUIOPkSmTR6C5PrTrdTjaM3iMnM3pHWoG/JiSifgxLddjsW2udblOy/FZ7sEluaHKbpJvsznllQ8MPwkCSBbs/ldUMvJnop3VhFHUID2jGYbFFTpejTtb18ghnYODg4JlkKIZPX8hAXvYOXkEc5GpI0zKqa5NO+2wCCWfmYHINfNQRfAFJ7Abtbi3JaE4zzhrMO7wIvL6BQVd4ckVT21qbMOmxLRaU+Geb9bHlYfhhmbWFHIp+hnJq8aOljW83m5pthDuuZg/aGEJ27ZL5EbwEvD/LdA84LwGnMnOgWpJBaVabyVG3SoRquZz67yhrl4CysRXTJ9NVWX2rEzBssCtxDlugSXNGSVU0yyx6vZzwVp/mphbl9VL4NugC/zGUwW+Ee3Vlqsig2qhuhKVVbet3azljwrx5CxqzeMkfMK4XmVxwRj4cVaXFTjLy0jKKUl5Rk3OBGGQvVsyfNYsPcIxLvv95LQt1LnUy+AoRpTGQuC0AfLPcBGMHZMUg3e4SBW51kG4i70GPD+c7blwevaYq94kwoJiVnWkimMcCM7YU3JeSdNTgTWn88mLrGlCKxB0Pf8PMbjE9CgIp/gbNtsmjm7ksubtau2JJr9kILhlIHvNQJV7ho/gomGivaZJyBdoab9TGJw4pPPM5Mn5DrHS51pQ15QmFun1eu6VEW30+/1hGWG/uAjVI+wPtovjb/2Y58fqrtJ82HP6KsRUlZtTUFVmt8+qMN9oambz04QRL1eqCbASkV/sNYbPJJlfSDJDK8pO7cAdmfHpaLzCFiVBhOAaZnkjCIIh0udkyxMD566htQfFFOVmP3Kur16u1m6v3BHMc9jVX/CO9Tt4uIFdgBHwetTpqEV41NH9WUyI7NS/86FYkOioA6/d5de/v4zOR+d/nJ2Pxlf/XJ4/GMM70PnbZE5ZGEBNyG+/vldfBw+zQFCgNMfed3yLjbSDMhE8YvX7ilEAokcf5zieEfy3LMZwpR9r5XVxq+eXfwGHeny09BQAAA==",
+                    "CSS_Link": "*gzip:H4sIAAAAAAAAC81YbVPbOBC+z53pf9CEMoWZmoRwuQEHuKFAW2boXYfQ4+5TR7HlWEWxPLJCoBn++61ebMuOnUC5DzceiLVa7e6zWj2SfJjJB0aQfEjJUUeSe9kNsqxz/PpVLKcMLZA3J+NbKj2JUy+mk5jBn/QCzrjwkZiM8VbvnX62h4XuLCPCywgjgfRRwhMCXdPMk3wWxB4OJOWJlT++fkUjgacELRoHq4CU0s7JIOCJxDQhAi0ixrH0GYnkMMVhSJOJ30vvrd7pzSV+4DOJFnkf+hU6kRmE9Cg05vdeRn/o3jEXIbgEkQqT//DaO7P2Pht9S78J7aOg4ScaknMhuDjlDFlZ0V6ENEsZfvBN0spRV3yulS4gCzUtxzTOcj20chxNGCTSGzMe3A4rTv6iZP6Zh6TUbVA6D6msKtUCAZ2LpNBaZf2JA5c9NoR1RoV8WGX6lBG8lIWa98xYabX6tEE1T0UoRM3FNdQ0WpgVJEg4jKCwVc0Qfz+VVbVP+YKDmldac6Ia/piz9mE0dY2PcXA7EXyWhP5GFEU4wmgm2NZbOsUTknXfQHF23ygr3f37/e6biDLW/ZpuDj6cUTzhCWb+TUwl2dw72ezv9QeDzf5pf+/A/N9Jk8kOHmhTb7eHptz93fQeZZzREG1E+/vDKRYTmsDaT/0+LMN8Tar3FgQXSTqrJGjJsBIau0pYG+nkbMlEv8lESR0jzTokfD+TUq0XnuKAygd/ZzCExEgwgFka4y0rPxoA6ZmRF8kdzeiYkUsoS7Rwsl7nSKOvyUhVCbAZCtSvogsZA00VSUEqMDSnoYzte2ym3zT4HRFgZu6jmIYhSYao4Dvdb9GZhsVvaEWHSplClg+FqMyjCDQn2hNIY3JKEqk4t0qmdlYVmfp4Jnk+zUIHqCWKuj2sTPgo0EZaafexwe8lmG7x2uJkJbM/ogYfV6ZM1kBzfWjXq3C0Z/AYOZvTO9QMeJ2SiXidluux2DZXulyl5fgs9+CS3FBlN8m32ZzyygeGnwQBJAt2/2sqGfkz0c5qwihqkJ7RDMPiCh2vxp2ta+SQzsHBQcEySNGMnr+QgD3snDyCmcjUESblVNemnXZYhJJPzUDkmnmsIviCE9iNWtzbklCcZ5w1GHd4EXn9goKu8fiapzY1tmFTYlqtqXDPN6vjysNwQzNrCrkU/YzkVWNHixpeb7c0Wwj3XMzvtbCEbdslciN4Cfj/FmgecF4DzmTnQLWkglKttxKjbpUIVfO5dd5QVy8BZeIrps+mqjJ7VqZgWeBW4hy3wJLmjBKqaZZYdfu5YK0/Tcyty+ol8G3QBX7jqQLfiPZqy1WRQbVQXYnKqtvWblbyR4V4cha15nESPmFcr7K4YAz8OKvLCpzlZSTllKQ8oyZngjDI3h0ZPmuW1nCMy34/OW1zdS71MjiKEaUxFzhtgPwzXARjRyTF4B0uUkWudRDuYq8Bzw9ney6cnj3mqjeJsKCYVR2p4hgFgjP2lJxX0vRUYM3pfPIia5rQCgRdz/9DDC4xrQXhFH/DZtvE0Y1c1rxdrTzR5JcMBLcMZK8ZqHLP8BFcNEy0NzQJ+Rwt7HcKgxOHdJaZPDnfIZb6XAvqmtLEIr1ez70yoo1+vz8sI+wXF6F6hP3BdnH8rR/z/FjdVZoPe05fhZiqcnMKqsrs9lkV5htNzWx+mjDixVI1AVYi8ou9xvCZJLMLSaZoSdmpHbgjMz65Gi2xRUkQIbiGWd4IgmCI9DnZ8sTAuWto7UExRbnZD5zrq5ertdsrdwTzHHb1F7xj/Q4ebmEXYAS8HnU6ahEedXR/FhMiO/XvfCgWJDrqwGt38fXvL1fnV+d/nJ1fja7/uTx/NIZ3oPP38YyyMICakN9+G6ivg4dZIChQmmPvO77DRtpBmQjWWP2+ZBSA6NHHOY5nBP8tizFc6UdaeVXc6vnlXzxvUy/0FAAA",
                     "title": "*gzip:H4sIAAAAAAAAC7MpySzJSbULjbDRh7AAiMez8hEAAAA="
                 },
                 "body": {
